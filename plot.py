@@ -1,17 +1,16 @@
-import os
 import matplotlib as mpl
+
 mpl.use('Agg')  # noqa
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 
 from benchmark.datasets import DATASETS
-from benchmark.algorithms.definitions import get_definitions
 from benchmark.plotting.metrics import all_metrics as metrics
 from benchmark.plotting.utils import (get_plot_label, compute_metrics,
-        create_linestyles, create_pointset)
-from benchmark.results import (store_results, load_all_results,
-                            get_unique_algorithms)
+                                      create_linestyles, create_pointset)
+from benchmark.results import (load_all_results,
+                               get_unique_algorithms)
 
 
 def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles):
@@ -25,12 +24,13 @@ def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles):
     def mean_y(algo):
         xs, ys, ls, axs, ays, als = create_pointset(all_data[algo], xn, yn)
         return -np.log(np.array(ys)).mean()
+
     # Find range for logit x-scale
     min_x, max_x = 1, 0
     for algo in sorted(all_data.keys(), key=mean_y):
         xs, ys, ls, axs, ays, als = create_pointset(all_data[algo], xn, yn)
-        min_x = min([min_x]+[x for x in xs if x > 0])
-        max_x = max([max_x]+[x for x in xs if x < 1])
+        min_x = min([min_x] + [x for x in xs if x > 0])
+        max_x = max([max_x] + [x for x in xs if x < 1])
         color, faded, linestyle, marker = linestyles[algo]
         handle, = plt.plot(xs, ys, '-', label=algo, color=color,
                            ms=7, mew=3, lw=3, linestyle=linestyle,
@@ -48,17 +48,17 @@ def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles):
     # Custom scales of the type --x-scale a3
     if x_scale[0] == 'a':
         alpha = int(x_scale[1:])
-        fun = lambda x: 1-(1-x)**(1/alpha)
-        inv_fun = lambda x: 1-(1-x)**alpha
+        fun = lambda x: 1 - (1 - x) ** (1 / alpha)
+        inv_fun = lambda x: 1 - (1 - x) ** alpha
         ax.set_xscale('function', functions=(fun, inv_fun))
         if alpha <= 3:
-            ticks = [inv_fun(x) for x in np.arange(0,1.2,.2)]
+            ticks = [inv_fun(x) for x in np.arange(0, 1.2, .2)]
             plt.xticks(ticks)
         if alpha > 3:
             from matplotlib import ticker
             ax.xaxis.set_major_formatter(ticker.LogitFormatter())
-            #plt.xticks(ticker.LogitLocator().tick_values(min_x, max_x))
-            plt.xticks([0, 1/2, 1-1e-1, 1-1e-2, 1-1e-3, 1-1e-4, 1])
+            # plt.xticks(ticker.LogitLocator().tick_values(min_x, max_x))
+            plt.xticks([0, 1 / 2, 1 - 1e-1, 1 - 1e-2, 1 - 1e-3, 1 - 1e-4, 1])
     # Other x-scales
     else:
         ax.set_xscale(x_scale)
@@ -74,7 +74,7 @@ def create_plot(all_data, raw, x_scale, y_scale, xn, yn, fn_out, linestyles):
     # Logit scale has to be a subset of (0,1)
     if 'lim' in xm and x_scale != 'logit':
         x0, x1 = xm['lim']
-        plt.xlim(max(x0,0), min(x1,1))
+        plt.xlim(max(x0, 0), min(x1, 1))
     elif x_scale == 'logit':
         plt.xlim(min_x, max_x)
     if 'lim' in ym:
@@ -143,6 +143,11 @@ if __name__ == "__main__":
         '--private-query',
         help='Use the private queries and ground truth',
         action='store_true')
+    parser.add_argument(
+        "--runbook",
+        help="Path to the runbook file",
+        default=None
+    )
     args = parser.parse_args()
 
     if not args.output:
@@ -157,7 +162,7 @@ if __name__ == "__main__":
         args.x_axis = "ap"
     count = int(args.count)
     unique_algorithms = get_unique_algorithms()
-    results = load_all_results(args.dataset, count, neurips23track=args.neurips23track)
+    results = load_all_results(args.dataset, count, neurips23track=args.neurips23track, runbook_path=args.runbook)
     linestyles = create_linestyles(sorted(unique_algorithms))
     if args.private_query:
         runs = compute_metrics(dataset.get_private_groundtruth(k=args.count),
